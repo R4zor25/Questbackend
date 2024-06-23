@@ -25,6 +25,7 @@ class ImageAnswer(
 ) : Answer() {
     override fun mapToImageAnswerDTO(): ImageAnswerDTO {
         return ImageAnswerDTO(
+            answerId = answerId!!,
             title = question!!.title,
             description = question!!.description,
             user = user.questUserId!!,

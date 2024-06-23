@@ -27,6 +27,7 @@ open class Answer(
 ) {
     open fun mapToImageAnswerDTO(): ImageAnswerDTO {
         return ImageAnswerDTO(
+            answerId = answerId!!,
             title = question!!.title,
             description = question!!.description,
             user = 0L,  //TODO elvileg nem kéne előjönnie de ha mégis

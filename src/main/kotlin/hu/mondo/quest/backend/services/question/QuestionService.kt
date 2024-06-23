@@ -16,7 +16,7 @@ interface QuestionService {
     fun answerInfiniteQuestion(questionId: Long, userId: Long, answer: Answer): AnswerDTO
     fun answerInfiniteInteractiveQuestion(questionId: Long, userId: Long, imageAnswer: ImageAnswer)
     fun answerStoryQuestion(questionId: Long, userId: Long, answer: Answer): AnswerDTO
-    fun answerStoryInteractiveQuestion(questionId: Long, userId: Long, imageAnswer: ImageAnswer)
+    fun answerStoryInteractiveQuestion(questionId: Long, userId: Long, imageAnswer: ImageAnswer) : Boolean
     fun getAllQuestions(): List<Long>
     fun getQuestionById(questionId: Long): QuestionDTO
     fun deleteQuestion(questionId: Long)

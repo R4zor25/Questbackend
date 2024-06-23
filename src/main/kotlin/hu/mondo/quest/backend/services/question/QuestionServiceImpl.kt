@@ -21,6 +21,8 @@ import lombok.RequiredArgsConstructor
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
+import java.time.Clock
+import java.util.*
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +40,11 @@ open class QuestionServiceImpl(
 
 
     override fun getRandomStoryQuestion(userId: Long): QuestionDTO {
+        val user = userRepository.findById(userId).get()
+        if(user.answeredStoryQuestions.isEmpty())
+            user.questStartDate = Date()
+        if(user.currentStoryQuestion != null)
+            return user.currentStoryQuestion!!.mapToQuestionDTO()
         val query = entityManager.createNativeQuery(
             "SELECT q.*\n" +
                     "FROM question AS q\n" +
@@ -45,16 +52,21 @@ open class QuestionServiceImpl(
                     "    SELECT 1\n" +
                     "    FROM quest_user AS u\n" +
                     "    JOIN quest_user_answered_story_questions AS aiq ON u.quest_user_id = aiq.quest_user_quest_user_id\n" +
-                    "    WHERE u.quest_user_id = $userId AND q.question_id = aiq.answered_infinite_questions_question_id\n" +
+                    "    WHERE u.quest_user_id = $userId AND q.question_id = aiq.answered_story_questions_question_id\n" +
                     ")\n" +
                     "ORDER BY RANDOM()\n" +
                     "LIMIT 1;", Question::class.java
         )
         val question = query.singleResult as Question
+        //TODO handle out of question
+        saveUser(user)
         return question.mapToQuestionDTO()
     }
 
     override fun getRandomInfiniteQuestion(userId: Long): QuestionDTO {
+        val user = userRepository.findById(userId).get()
+        if (user.currentInfiniteQuestion != null)
+            return user.currentInfiniteQuestion!!.mapToQuestionDTO()
         val query = entityManager.createNativeQuery(
             "SELECT q.*\n" +
                     "FROM question AS q\n" +
@@ -68,6 +80,9 @@ open class QuestionServiceImpl(
                     "LIMIT 1;", Question::class.java
         )
         val question = query.singleResult as Question
+        //TODO handle out of question
+        user.currentInfiniteQuestion = question
+        saveUser(user)
         return question.mapToQuestionDTO()
     }
 
@@ -172,6 +187,7 @@ open class QuestionServiceImpl(
 
         user.answeredInfiniteQuestions.add(question)
         user.infinitePoints += point
+        user.currentInfiniteQuestion = null
         saveUser(user)
 
         return AnswerDTO(
@@ -189,6 +205,11 @@ open class QuestionServiceImpl(
     ) {
         val question = questionRepository.findById(questionId).get()
         val user = userRepository.findById(userId).get()
+        user.currentInfiniteQuestion = null
+        user.answeredInfiniteQuestions.add(question)
+
+        saveUser(user)
+
 
         imageAnswer.apply {
             this.question = question
@@ -209,7 +230,8 @@ open class QuestionServiceImpl(
 
         user.answeredStoryQuestions.add(question)
         user.storyPoints += point
-        userRepository.save(user)
+        user.currentStoryQuestion = null
+        saveUser(user)
 
         log.info("User $userId answered $questionId with $answer and got $point points")
 
@@ -221,9 +243,13 @@ open class QuestionServiceImpl(
         )
     }
 
-    override fun answerStoryInteractiveQuestion(questionId: Long, userId: Long, imageAnswer: ImageAnswer) {
+    override fun answerStoryInteractiveQuestion(questionId: Long, userId: Long, imageAnswer: ImageAnswer): Boolean {
         val question = questionRepository.findById(questionId).get()
         val user = userRepository.findById(userId).get()
+
+        user.currentStoryQuestion = null
+        user.answeredStoryQuestions.add(question)
+        saveUser(user)
 
         imageAnswer.apply {
             this.question = question
@@ -233,6 +259,9 @@ open class QuestionServiceImpl(
         }
 
         saveAnswer(imageAnswer)
+        if(user.answeredStoryQuestions.size == 100)
+            return true
+        else return false
     }
 
     override fun getAllQuestions(): List<Long> {

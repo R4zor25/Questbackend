@@ -77,7 +77,7 @@ class QuestionController(
         }
     }
 
-    @PostMapping("{questionId}/story/answer/interactive/{userId}")
+    @PostMapping("{questionId}/infinite/answer/interactive/{userId}")
     fun answerInteractiveInfiniteQuestion(@PathVariable questionId: Long, @PathVariable userId: Long, @RequestBody imageAnswer: ImageAnswer) : ResponseEntity<Any> {
         return try {
             ResponseEntity.ok().body(questionService.answerInfiniteInteractiveQuestion(questionId, userId, imageAnswer))
@@ -123,19 +123,10 @@ class QuestionController(
         }
     }
 
-    @GetMapping("/story/interactive")
-    fun getAllStoryImageAnswer() : ResponseEntity<Any> {
+    @GetMapping("/interactive")
+    fun getAllImageAnswer() : ResponseEntity<Any> {
         return try {
-            ResponseEntity.ok().body(questionService.getAllStoryImageAnswers())
-        } catch (e: Exception) {
-            ResponseEntity.status(404).body(e.localizedMessage)
-        }
-    }
-
-    @GetMapping("/infinite/interactive")
-    fun getAllInfiniteImageAnswer() : ResponseEntity<Any> {
-        return try {
-            ResponseEntity.ok().body(questionService.getAllInfiniteImageAnswers())
+            ResponseEntity.ok().body(questionService.getAllQuestions())
         } catch (e: Exception) {
             ResponseEntity.status(404).body(e.localizedMessage)
         }
@@ -168,10 +159,19 @@ class QuestionController(
         }
     }
     //TODO admin def
-    @PostMapping("/interactive/{userId}/accept")
-    fun acceptImageAnswer(@PathVariable userId: Long) : ResponseEntity<Any> {
+    @PostMapping("/interactive/{answerId}/accept")
+    fun acceptImageAnswer(@PathVariable answerId: Long) : ResponseEntity<Any> {
         return try {
-            ResponseEntity.ok().body(questionService.acceptImageAnswerByQuestionGroupType(userId))
+            ResponseEntity.ok().body(questionService.acceptImageAnswer(answerId))
+        } catch (e: Exception) {
+            ResponseEntity.status(404).body(e.localizedMessage)
+        }
+    }
+
+    @PostMapping("/interactive/{answerId}/reject")
+    fun declineImageAnswer(@PathVariable answerId: Long) : ResponseEntity<Any> {
+        return try {
+            ResponseEntity.ok().body(questionService.declineImageAnswer(answerId))
         } catch (e: Exception) {
             ResponseEntity.status(404).body(e.localizedMessage)
         }
