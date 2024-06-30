@@ -18,7 +18,6 @@ import lombok.NoArgsConstructor
 class InteractiveQuestion(
     override var title: String,
     override var description: String,
-    @JsonManagedReference
     @OneToMany(mappedBy = "question", fetch = FetchType.EAGER, cascade = [jakarta.persistence.CascadeType.ALL])
     override var answers : MutableCollection<Answer> = mutableListOf(),
     @OneToOne(cascade = [CascadeType.ALL])
@@ -27,10 +26,10 @@ class InteractiveQuestion(
     override var averageRating: Double,
     override var ratings: MutableList<Int>,
     override var difficulty: QuestionDifficulty,
-    @ManyToMany(cascade = [CascadeType.ALL])
+    @ManyToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     override var ratedByUsers: MutableList<QuestUser>,
     @Lob
-    val file: ByteArray = byteArrayOf(),
+    val imageFile: ByteArray = byteArrayOf(),
 
 ) : Question() {
 
@@ -39,11 +38,11 @@ class InteractiveQuestion(
             id = questionId!!,
             title = title,
             description = description,
-            answers = answers.distinctBy{ it.answerText }.shuffled().toMutableList(),
+            answers = mutableListOf(),
             averageRating = averageRating,
             difficulty = difficulty,
-            questionType = QuestionType.IMAGE,
-            file = file
+            questionType = QuestionType.INTERACTIVE,
+            file = imageFile
         )
     }
 }

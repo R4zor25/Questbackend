@@ -1,7 +1,6 @@
 package hu.mondo.quest.backend.services.question
 
-import hu.mondo.quest.backend.models.dtos.answer.AnswerDTO
-import hu.mondo.quest.backend.models.dtos.answer.ImageAnswerDTO
+import hu.mondo.quest.backend.models.dtos.answer.*
 import hu.mondo.quest.backend.models.dtos.question.CreateQuestionDTO
 import hu.mondo.quest.backend.models.dtos.question.QuestionDTO
 import hu.mondo.quest.backend.models.dtos.question.QuestionType
@@ -21,7 +20,6 @@ import lombok.RequiredArgsConstructor
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
-import java.time.Clock
 import java.util.*
 
 @Service
@@ -41,23 +39,48 @@ open class QuestionServiceImpl(
 
     override fun getRandomStoryQuestion(userId: Long): QuestionDTO {
         val user = userRepository.findById(userId).get()
+        //CHECK IF ENDED
+        if(user.answeredStoryQuestions.size == 100) {
+            user.questEndDate = Date()
+            userRepository.save(user)
+            return QuestionDTO(0, "", "", mutableListOf(), 0.0, QuestionDifficulty.VERY_EASY, QuestionType.TEXT, byteArrayOf())
+        }
+        //CHECK IF STARTED
         if(user.answeredStoryQuestions.isEmpty())
             user.questStartDate = Date()
+
+        //CHECK IF QUESTIONS ALREADY ANSWERED
         if(user.currentStoryQuestion != null)
             return user.currentStoryQuestion!!.mapToQuestionDTO()
-        val query = entityManager.createNativeQuery(
+
+        val query  = if(user.answeredStoryQuestions.size % 10 == 9) {
+         entityManager.createNativeQuery(
             "SELECT q.*\n" +
                     "FROM question AS q\n" +
                     "WHERE NOT EXISTS (\n" +
                     "    SELECT 1\n" +
                     "    FROM quest_user AS u\n" +
                     "    JOIN quest_user_answered_story_questions AS aiq ON u.quest_user_id = aiq.quest_user_quest_user_id\n" +
-                    "    WHERE u.quest_user_id = $userId AND q.question_id = aiq.answered_story_questions_question_id\n" +
+                    "    WHERE u.quest_user_id = $userId AND q.question_id = aiq.answered_story_questions_question_id AND q.dtype = 'InteractiveQuestion'\n" +
                     ")\n" +
                     "ORDER BY RANDOM()\n" +
                     "LIMIT 1;", Question::class.java
-        )
+        ) } else {
+            entityManager.createNativeQuery(
+                "SELECT q.*\n" +
+                        "FROM question AS q\n" +
+                        "WHERE NOT EXISTS (\n" +
+                        "    SELECT 1\n" +
+                        "    FROM quest_user AS u\n" +
+                        "    JOIN quest_user_answered_story_questions AS aiq ON u.quest_user_id = aiq.quest_user_quest_user_id\n" +
+                        "    WHERE u.quest_user_id = $userId AND q.question_id = aiq.answered_story_questions_question_id\n" +
+                        ")\n" +
+                        "ORDER BY RANDOM()\n" +
+                        "LIMIT 1;", Question::class.java
+            )
+        }
         val question = query.singleResult as Question
+        user.currentStoryQuestion = question
         //TODO handle out of question
         saveUser(user)
         return question.mapToQuestionDTO()
@@ -65,8 +88,19 @@ open class QuestionServiceImpl(
 
     override fun getRandomInfiniteQuestion(userId: Long): QuestionDTO {
         val user = userRepository.findById(userId).get()
+        val size = questionRepository.count()
+
+        //CHECK IF ENDED
+        if(user.answeredStoryQuestions.size == size.toInt()) {
+            user.questEndDate = Date()
+            userRepository.save(user)
+            return QuestionDTO(0, "", "", mutableListOf(), 0.0, QuestionDifficulty.VERY_EASY, QuestionType.TEXT, byteArrayOf())
+        }
+
+        //CHECK IF ALREADY ANSWERED
         if (user.currentInfiniteQuestion != null)
             return user.currentInfiniteQuestion!!.mapToQuestionDTO()
+
         val query = entityManager.createNativeQuery(
             "SELECT q.*\n" +
                     "FROM question AS q\n" +
@@ -168,7 +202,7 @@ open class QuestionServiceImpl(
                     averageRating = 0.0,
                     ratedByUsers = mutableListOf(),
                     difficulty = createQuestionDTO.questionDifficulty,
-                    file = createQuestionDTO.file
+                    imageFile = createQuestionDTO.file
                 )
             }
         }
@@ -201,7 +235,7 @@ open class QuestionServiceImpl(
     override fun answerInfiniteInteractiveQuestion(
         questionId: Long,
         userId: Long,
-        imageAnswer: ImageAnswer
+        createImageAnswerDTO: CreateImageAnswerDTO
     ) {
         val question = questionRepository.findById(questionId).get()
         val user = userRepository.findById(userId).get()
@@ -211,7 +245,8 @@ open class QuestionServiceImpl(
         saveUser(user)
 
 
-        imageAnswer.apply {
+        val imageAnswer = ImageAnswer().apply {
+            this.imageFile = createImageAnswerDTO.imageFile
             this.question = question
             this.user = user
             this.imageAnswerState = ImageAnswerState.PENDING
@@ -286,9 +321,9 @@ open class QuestionServiceImpl(
         userRepository.save(user)
     }
 
-    override fun getAllImageAnswersByUserId(userId: Long): List<ImageAnswerDTO> {
+    override fun getAllImageAnswersByUserId(userId: Long): List<UserImageAnswerDTO> {
         val imageAnswers = answerRepository.findAllImageAnswersByQuestUserId(userId)
-        return imageAnswers.map { it.mapToImageAnswerDTO() }
+        return imageAnswers.map { it.mapToUserImageAnswerDTO() }
     }
 
     override fun getAllImageAnswersByImageAnswerState(imageAnswerState: ImageAnswerState): List<ImageAnswerDTO> {
@@ -296,20 +331,26 @@ open class QuestionServiceImpl(
         return imageAnswers.map { it.mapToImageAnswerDTO() }
     }
 
-    override fun getLatestImageAnswers(): List<ImageAnswerDTO> {
+    override fun getAllAcceptedImageAnswers(): List<SharedImageAnswerDTO> {
+        val imageAnswers = answerRepository.findAllImageAnswersByImageAnswerState(ImageAnswerState.APPROVED)
+        return imageAnswers.map { it.maptoSharedImageAnswerDTO() }
+    }
+
+    override fun getLatestImageAnswers(): List<SharedImageAnswerDTO> {
         val imageAnswers = answerRepository.get10LatestApprovedAnswers()
-        return imageAnswers.map { it.mapToImageAnswerDTO() }
+        return imageAnswers.map { it.maptoSharedImageAnswerDTO() }
     }
 
     override fun acceptImageAnswer(answerId: Long) {
         val answer = answerRepository.findById(answerId).get() as ImageAnswer
         answer.imageAnswerState = ImageAnswerState.APPROVED
         val points = answerHelperService.calculatePointForQuestion(answer.question!!, true)
-        val user = userRepository.findById(answer.user.questUserId!!).get()
+        val user = userRepository.findById(answer.user?.questUserId!!).get()
 
         when (answer.questionGroupType) {
             QuestionGroupType.STORY -> user.storyPoints += points
             QuestionGroupType.INFINITE -> user.infinitePoints += points
+            null -> TODO()
         }
         userRepository.save(user)
         answerRepository.save(answer)
@@ -319,11 +360,12 @@ open class QuestionServiceImpl(
         val answer = answerRepository.findById(answerId).get() as ImageAnswer
         answer.imageAnswerState = ImageAnswerState.REJECTED
         val points = answerHelperService.calculatePointForQuestion(answer.question!!, false)
-        val user = userRepository.findById(answer.user.questUserId!!).get()
+        val user = userRepository.findById(answer.user?.questUserId!!).get()
 
         when (answer.questionGroupType) {
             QuestionGroupType.STORY -> user.storyPoints += points
             QuestionGroupType.INFINITE -> user.infinitePoints += points
+            null -> TODO()
         }
         userRepository.save(user)
         answerRepository.save(answer)

@@ -3,7 +3,9 @@ package hu.mondo.quest.backend.models.dtos.user
 data class LoggedInUserDTO(
     val userId: Long,
     val username: String,
-    val points: Double,
+    val storyPoints: Double,
+    val infinitePoints: Double,
     val role: String,
-    val hasStartedStory: Boolean
+    val finishedStory: Boolean,
+    val finishedInfinite: Boolean
 )

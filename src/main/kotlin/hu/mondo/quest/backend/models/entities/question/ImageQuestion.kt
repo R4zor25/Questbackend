@@ -25,7 +25,7 @@ class ImageQuestion(
     override var averageRating: Double,
     override var ratings: MutableList<Int>,
     override var difficulty: QuestionDifficulty,
-    @ManyToMany(cascade = [CascadeType.ALL])
+    @ManyToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     override var ratedByUsers: MutableList<QuestUser>,
     @Lob
     val imageFile: ByteArray = byteArrayOf(),

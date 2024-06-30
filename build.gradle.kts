@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.springframework.boot.gradle.tasks.bundling.BootJar
 
 plugins {
 	id("org.springframework.boot") version "3.2.5"
@@ -6,13 +7,16 @@ plugins {
 	kotlin("jvm") version "1.9.23"
 	kotlin("plugin.spring") version "1.9.23"
 	kotlin("plugin.jpa") version "1.9.23"
+	application
 }
 
 group = "hu.mondo"
 version = "0.0.1-SNAPSHOT"
 
+
 java {
 	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
 }
 
 configurations {
@@ -55,13 +59,21 @@ dependencies {
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 }
 
+sourceSets {
+	getByName("main") {
+		resources {
+			srcDir("src/main/resources")
+			include("**/*.properties", "**/*.yml")
+		}
+	}
+}
+tasks.withType<ProcessResources> {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 tasks.withType<KotlinCompile> {
 	kotlinOptions {
 		freeCompilerArgs += "-Xjsr305=strict"
 		jvmTarget = "21"
 	}
-}
-
-tasks.withType<Test> {
-	useJUnitPlatform()
 }

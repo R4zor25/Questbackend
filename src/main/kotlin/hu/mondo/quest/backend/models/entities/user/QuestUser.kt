@@ -2,6 +2,7 @@ package hu.mondo.quest.backend.models.entities.user
 
 import com.fasterxml.jackson.annotation.JsonBackReference
 import com.fasterxml.jackson.annotation.JsonFormat
+import hu.mondo.quest.backend.models.entities.answer.ImageAnswer
 import hu.mondo.quest.backend.models.entities.question.Question
 import jakarta.persistence.*
 import lombok.AllArgsConstructor
@@ -36,12 +37,12 @@ class QuestUser(
     var answeredStoryQuestions: MutableCollection<Question> = mutableListOf(),
 
     @JsonBackReference
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "current_story_question_id")
     var currentStoryQuestion: Question? = null,
 
     @JsonBackReference
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "current_infinite_question_id")
     var currentInfiniteQuestion: Question? = null,
 
@@ -57,8 +58,11 @@ class QuestUser(
     @Enumerated(EnumType.STRING)
     val role: Role,
 
-    @ManyToMany(cascade = [CascadeType.ALL])
-    var ratedQuestions: MutableList<Question> = mutableListOf()
+    @ManyToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    var ratedQuestions: MutableList<Question> = mutableListOf(),
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+    var imageAnswers: MutableList<ImageAnswer> = mutableListOf()
 
 ) : Serializable {
 }

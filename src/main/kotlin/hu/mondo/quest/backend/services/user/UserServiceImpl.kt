@@ -16,13 +16,15 @@ class UserServiceImpl(
 ) : UserService {
 
     override fun getInfiniteLeaderboard(): List<LeaderboardInfiniteUserDTO> {
-        val leaderboardUserList = userRepository.findAll()
+        var leaderboardUserList = userRepository.findAll()
+        leaderboardUserList = leaderboardUserList.filter  { it.role != Role.ADMIN }
         leaderboardUserList.sortByDescending { it.infinitePoints }
         return leaderboardUserList.map { LeaderboardInfiniteUserDTO(it.username, it.infinitePoints) }
     }
 
     override fun getStoryLeaderboard(): List<LeaderboardStoryUserDTO> {
-        val leaderboardUserList = userRepository.findAll()
+        var leaderboardUserList = userRepository.findAll()
+        leaderboardUserList = leaderboardUserList.filter  { it.role != Role.ADMIN }
         leaderboardUserList.sortByDescending { it.storyPoints }
         return leaderboardUserList.map {LeaderboardStoryUserDTO(it.username, it.storyPoints , it.questStartDate, it.questEndDate)}
     }

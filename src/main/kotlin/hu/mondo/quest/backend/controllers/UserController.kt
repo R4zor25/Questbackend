@@ -3,6 +3,7 @@ package hu.mondo.quest.backend.controllers
 import hu.mondo.quest.backend.models.dtos.auth.JwtResponse
 import hu.mondo.quest.backend.models.dtos.user.AuthDTO
 import hu.mondo.quest.backend.models.dtos.user.LoggedInUserDTO
+import hu.mondo.quest.backend.repositories.QuestionRepository
 import hu.mondo.quest.backend.security.JwtTokenProvider
 import hu.mondo.quest.backend.services.user.UserService
 import lombok.RequiredArgsConstructor
@@ -18,12 +19,9 @@ import org.springframework.web.bind.annotation.*
 @CrossOrigin(origins = ["*"])
 class UserController(
     private val userService: UserService,
+    private val questionRepository: QuestionRepository,
     private val jwtTokenProvider: JwtTokenProvider,
-    private val authenticationManager: AuthenticationManager,
-    private val userDetailsService: UserDetailsService
 ) {
-    private val log = LoggerFactory.getLogger(this.javaClass)
-    var UPLOAD_DIRECTORY = System.getProperty("user.dir") + "/uploads"
 
     @PostMapping("/auth/register")
     fun register(@RequestBody authDTO: AuthDTO) : ResponseEntity<Any> {
@@ -40,7 +38,14 @@ class UserController(
         val authentication = jwtTokenProvider.getAuthenticationFromUsername(user.username)
         val token = jwtTokenProvider.generateToken(authentication)
         val refreshToken = jwtTokenProvider.generateToken(authentication) // Generate a separate refresh token if needed
-        val loggedInUserDTO = LoggedInUserDTO(user.questUserId!!, user.username, user.infinitePoints, user.role.value, user.answeredStoryQuestions.isNotEmpty())
+        val loggedInUserDTO = LoggedInUserDTO(
+            user.questUserId!!,
+            user.username,
+            user.storyPoints,
+            user.infinitePoints,
+            user.role.value,
+            user.answeredStoryQuestions.size == 100,
+            user.answeredInfiniteQuestions.size == questionRepository.count().toInt())
         return ResponseEntity.ok(JwtResponse(token, refreshToken, loggedInUserDTO))
     }
 

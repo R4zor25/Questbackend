@@ -29,7 +29,7 @@ class AudioQuestion(
     override var difficulty: QuestionDifficulty,
     @Lob
     val audioFile: ByteArray = byteArrayOf(),
-    @ManyToMany(cascade = [CascadeType.ALL])
+    @ManyToMany(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     override var ratedByUsers: MutableList<QuestUser>,
 
 

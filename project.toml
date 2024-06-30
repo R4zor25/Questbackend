@@ -1,0 +1,23 @@
+[[build.env]]
+name = "BP_JVM_VERSION"
+value = "21.*"
+
+[[build.env]]
+name = "BP_GRADLE_VERSION"
+value = "8.*"
+
+[[build.env]]
+name = "BP_GRADLE_BUILD_TASK"
+value = "build -x test"
+
+[[build.env]]
+name = "BP_BOOT_NATIVE_IMAGE"
+value = "false"
+
+[[build.env]]
+name = "BP_JAR_PATH"
+value = "build/libs/*.jar"
+
+[[build.env]]
+name = "BP_SPRING_BOOT_ENABLED"
+value = "true"

@@ -1,5 +1,6 @@
 package hu.mondo.quest.backend.controllers
 
+import hu.mondo.quest.backend.models.dtos.answer.CreateImageAnswerDTO
 import hu.mondo.quest.backend.models.dtos.question.CreateQuestionDTO
 import hu.mondo.quest.backend.models.dtos.question.RatingDTO
 import hu.mondo.quest.backend.models.entities.answer.Answer
@@ -78,9 +79,9 @@ class QuestionController(
     }
 
     @PostMapping("{questionId}/infinite/answer/interactive/{userId}")
-    fun answerInteractiveInfiniteQuestion(@PathVariable questionId: Long, @PathVariable userId: Long, @RequestBody imageAnswer: ImageAnswer) : ResponseEntity<Any> {
+    fun answerInteractiveInfiniteQuestion(@PathVariable questionId: Long, @PathVariable userId: Long, @RequestBody createImageAnswerDTO: CreateImageAnswerDTO) : ResponseEntity<Any> {
         return try {
-            ResponseEntity.ok().body(questionService.answerInfiniteInteractiveQuestion(questionId, userId, imageAnswer))
+            ResponseEntity.ok().body(questionService.answerInfiniteInteractiveQuestion(questionId, userId, createImageAnswerDTO))
         } catch (e: Exception) {
             ResponseEntity.status(404).body(e.localizedMessage)
         }
@@ -136,6 +137,15 @@ class QuestionController(
     fun getAllPendingStoryImageAnswer() : ResponseEntity<Any> {
         return try {
             ResponseEntity.ok().body(questionService.getAllImageAnswersByImageAnswerState(ImageAnswerState.PENDING))
+        } catch (e: Exception) {
+            ResponseEntity.status(404).body(e.localizedMessage)
+        }
+    }
+
+    @GetMapping("interactive/accepted")
+    fun getAllAcceptedStoryImageAnswer() : ResponseEntity<Any> {
+        return try {
+            ResponseEntity.ok().body(questionService.getAllAcceptedImageAnswers())
         } catch (e: Exception) {
             ResponseEntity.status(404).body(e.localizedMessage)
         }
